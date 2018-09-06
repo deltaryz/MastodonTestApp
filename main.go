@@ -23,6 +23,7 @@ type environmentVariables struct {
 // Global variables
 var (
 	config environmentVariables
+	c      *mastodon.Client
 )
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 	DebugPrint(config.MastodonServer)
 	DebugPrint(config.ClientID)
 	DebugPrint(config.ClientSecret)
-	c := mastodon.NewClient(&mastodon.Config{
+	c = mastodon.NewClient(&mastodon.Config{
 		Server:       config.MastodonServer,
 		ClientID:     config.ClientID,
 		ClientSecret: config.ClientSecret,
@@ -56,38 +57,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	/*
-		// retrieve timeline
-		DebugPrint("Now retrieving timeline")
-		timeline, err := c.GetTimelineHome(context.Background(), nil)
-		if err != nil {
-			fmt.Println("Something went wrong with retrieving the timeline:\n")
-			log.Fatal(err)
-		}
+	// display timeline
+	timeline := RetrieveHomeTimeline()
+	DebugPrint("Now displaying timeline")
+	for i := len(timeline) - 1; i >= 0; i-- {
+		fmt.Println(timeline[i])
+	}
 
-		// display timeline
-		DebugPrint("Now displaying timeline")
-		for i := len(timeline) - 1; i >= 0; i-- {
-			fmt.Println(timeline[i])
-		}
-	*/
-
-	// post a test message
-	DebugPrint("Now posting test message:")
-	status, err := c.PostStatus(context.Background(), &mastodon.Toot{
-		Status: "This is a test message, don't mind me.",
-	})
-
+	// Post the test message
+	status, err := PostToot("This is a test message, don't mind me.")
 	fmt.Println(status)
 
-	testMessageID := status.URL[len(status.URL)-18:]
-	fmt.Println("This toot's ID is: " + testMessageID)
+	// Convert ID to int64 so we can use it
+	testMessageID, err := strconv.ParseInt(status.URL[len(status.URL)-18:], 10, 64) // please don't write code like i do
+	fmt.Println("This toot's ID is: " + string(testMessageID))
 
+	// zzzzzz
 	DebugPrint("Now waiting 5 seconds before deleting...")
 	time.Sleep(5 * time.Second)
 
+	// delete it so it doesn't spam our timeline
 	DebugPrint("Attempting to delete toot")
-	testMessageIDAsInt, err := strconv.ParseInt(testMessageID, 10, 64)
+	c.DeleteStatus(context.Background(), testMessageID)
 
-	c.DeleteStatus(context.Background(), testMessageIDAsInt)
 }
