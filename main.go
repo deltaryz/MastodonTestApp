@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-
 	"github.com/caarlos0/env"
 	"github.com/mattn/go-mastodon"
+	"log"
+	"strconv"
+	"time"
 )
 
 // Environment variables
@@ -55,17 +56,38 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// retrieve timeline
-	DebugPrint("Now retrieving timeline")
-	timeline, err := c.GetTimelineHome(context.Background(), nil)
-	if err != nil {
-		fmt.Println("Something went wrong with retrieving the timeline:\n")
-		log.Fatal(err)
-	}
+	/*
+		// retrieve timeline
+		DebugPrint("Now retrieving timeline")
+		timeline, err := c.GetTimelineHome(context.Background(), nil)
+		if err != nil {
+			fmt.Println("Something went wrong with retrieving the timeline:\n")
+			log.Fatal(err)
+		}
 
-	// display timeline
-	DebugPrint("Now displaying timeline")
-	for i := len(timeline) - 1; i >= 0; i-- {
-		fmt.Println(timeline[i])
-	}
+		// display timeline
+		DebugPrint("Now displaying timeline")
+		for i := len(timeline) - 1; i >= 0; i-- {
+			fmt.Println(timeline[i])
+		}
+	*/
+
+	// post a test message
+	DebugPrint("Now posting test message:")
+	status, err := c.PostStatus(context.Background(), &mastodon.Toot{
+		Status: "This is a test message, don't mind me.",
+	})
+
+	fmt.Println(status)
+
+	testMessageID := status.URL[len(status.URL)-18:]
+	fmt.Println("This toot's ID is: " + testMessageID)
+
+	DebugPrint("Now waiting 5 seconds before deleting...")
+	time.Sleep(5 * time.Second)
+
+	DebugPrint("Attempting to delete toot")
+	testMessageIDAsInt, err := strconv.ParseInt(testMessageID, 10, 64)
+
+	c.DeleteStatus(context.Background(), testMessageIDAsInt)
 }
